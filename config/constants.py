@@ -1,0 +1,10 @@
+VOSK_CHUNK_SIZE = 4000          
+VOSK_CHANNELS = 1               
+VOSK_SAMPLE_WIDTH = 2           
+SUPPORTED_FORMATS = {".mp3", ".wav", ".ogg", ".flac", ".m4a", ".mp4", ".webm"}
+MAX_SEGMENT_SILENCE_MS = 700    
+MIN_SEGMENT_DURATION_S = 0.5
+SRT_MAX_CHARS_PER_LINE = 42   
+SRT_MAX_LINES_PER_CUE = 2
+SPINNER_TEXT = "Transcrevendo..."
+MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024 
