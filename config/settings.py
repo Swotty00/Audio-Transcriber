@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     @property
     def ai_enabled(self) -> bool:
-        return bool(self.anthropic_api_key)
+        return bool(self.ai_api_key)
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
