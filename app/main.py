@@ -1,55 +1,48 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-import io
-import json
-import wave
-from vosk import Model, KaldiRecognizer
-import os
 
-app = FastAPI()
+from config.logging_setup import setup_logging
+from services.pipeline_service import PipelineService
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models")
-model = Model(MODEL_PATH)
+setup_logging()
+
+app = FastAPI(title="Audio Transcriber")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
+
+_pipeline = PipelineService()
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "model_ready": _pipeline._transcription.is_ready()}
+
 
 @app.post("/process-audio")
 async def process_audio(file: UploadFile = File(...)):
-    audio_data = await file.read()
-    
-    # 2. Abrir o áudio usando o módulo wave (Vosk precisa de WAV puro)
-    with wave.open(io.BytesIO(audio_data), "rb") as wf:
-        # Verifica se o áudio está no formato que o Vosk espera
-        if wf.getnchannels() != 1 or wf.getsampwidth() != 2 or wf.getcomptype() != "NONE":
-            return {"error": "O áudio deve ser WAV Mono (PCM 16-bit)."}
+    audio_bytes = await file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Arquivo de áudio vazio.")
 
-        # 3. Inicializar o reconhecedor com a taxa de amostragem do arquivo
-        rec = KaldiRecognizer(model, wf.getframerate())
-        rec.SetWords(True) # Opcional: para retornar timestamps das palavras
+    suffix = f".{file.filename.rsplit('.', 1)[-1]}" if file.filename else ".wav"
 
-        # 4. Processar o áudio
-        transcription = ""
-        while True:
-            data = wf.readframes(4000) # Lê o áudio em pedaços
-            if len(data) == 0:
-                break
-            if rec.AcceptWaveform(data):
-                pass # Pode capturar resultados parciais aqui se desejar
-
-        # 5. Pegar o resultado final
-        result_json = json.loads(rec.FinalResult())
-        transcription = result_json.get("text", "")
+    transcript = _pipeline.run_from_bytes(audio_bytes, suffix=suffix)
 
     return {
         "filename": file.filename,
-        "transcription": transcription,
-        "ai_analysis": "A IA analisou seu texto e concluiu que o projeto será um sucesso!"
+        "duration": transcript.duration,
+        "transcription": transcript.full_text,
+        "segments": [
+            {"start": s.start, "end": s.end, "text": s.text, "confidence": s.confidence}
+            for s in transcript.segments
+        ],
     }
+
 
 if __name__ == "__main__":
     import uvicorn
