@@ -72,19 +72,22 @@ fi
 # 5. Verifica modelo Vosk
 # ---------------------------------------------------------------------------
 VOSK_MODEL_PATH=$(python3 -c "
-import os, sys
+import sys
 sys.path.insert(0, '.')
 try:
     from config.settings import settings
     print(settings.vosk_model_path)
 except Exception:
     print('models/vosk')
-" 2>/dev/null)
+" 2>/dev/null) || VOSK_MODEL_PATH="models/vosk"
 
-if [ -z "$(ls -A "$ROOT/$VOSK_MODEL_PATH" 2>/dev/null)" ]; then
+MODEL_FILES=$(find "$ROOT/$VOSK_MODEL_PATH" -not -name ".gitkeep" -not -type d 2>/dev/null | wc -l || echo 0)
+if [ "$MODEL_FILES" -eq 0 ]; then
     warn "Modelo Vosk não encontrado em '$VOSK_MODEL_PATH'."
     warn "Baixando modelo padrão (small-pt) ..."
     python3 scripts/download_models.py --model small-pt
+else
+    info "Modelo Vosk encontrado em '$VOSK_MODEL_PATH'."
 fi
 
 # ---------------------------------------------------------------------------
@@ -93,19 +96,21 @@ fi
 mkdir -p "$ROOT/data"
 
 # ---------------------------------------------------------------------------
-# 7. Sobe o Streamlit
+# 7. Exporta PYTHONPATH para que imports como "from config..." funcionem
 # ---------------------------------------------------------------------------
-info "Iniciando Audio Transcriber..."
+export PYTHONPATH="$ROOT"
+
+# ---------------------------------------------------------------------------
+# 8. Sobe o servidor FastAPI com uvicorn
+# ---------------------------------------------------------------------------
+info "Iniciando Audio Transcriber em http://${APP_HOST:-localhost}:${APP_PORT:-8000} ..."
 echo ""
 
-exec streamlit run app/main.py \
-    --server.port="${STREAMLIT_PORT:-8501}" \
-    --server.address="${STREAMLIT_HOST:-localhost}" \
-    --server.fileWatcherType=poll \
-    --logger.level="$( python3 -c "
-import sys; sys.path.insert(0, '.')
-try:
-    from config.settings import settings; print(settings.log_level.lower())
-except Exception:
-    print('info')
-" 2>/dev/null )"
+exec uvicorn app.main:app \
+    --host "${APP_HOST:-localhost}" \
+    --port "${APP_PORT:-8000}" \
+    --reload \
+    --reload-dir "$ROOT/app" \
+    --reload-dir "$ROOT/core" \
+    --reload-dir "$ROOT/services" \
+    --reload-dir "$ROOT/config"
