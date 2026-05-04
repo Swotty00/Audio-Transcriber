@@ -4,4 +4,4 @@ __pycache__/
 models/
 .claude/
 .vscode/
-.env
+*.env
