@@ -3,6 +3,7 @@ import os
 import tempfile
 
 from core.audio.processor import to_vosk_wav
+from core.nlp.pipeline import NLPPipeline
 from core.speech_to_text.base import Transcript
 from services.transcription_service import TranscriptionService
 
@@ -12,12 +13,14 @@ logger = logging.getLogger(__name__)
 class PipelineService:
     def __init__(self) -> None:
         self._transcription = TranscriptionService()
+        self._nlp = NLPPipeline()
 
     def run_from_path(self, file_path: str) -> Transcript:
         """Recebe path de qualquer formato suportado e retorna o Transcript."""
         wav_path = to_vosk_wav(file_path)
         try:
-            return self._transcription.transcribe(wav_path)
+            transcript = self._transcription.transcribe(wav_path)
+            return self._nlp.process(transcript)
         finally:
             os.unlink(wav_path)
 
