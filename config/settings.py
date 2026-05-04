@@ -8,7 +8,10 @@ class Settings(BaseSettings):
 
     sample_rate: int = 16000
 
-    ai_api_key: str = ""
+    # Chaves de IA — o FallbackClient tenta na ordem: Anthropic → OpenAI → Gemini
+    anthropic_api_key: str = ""
+    openai_api_key: str = ""
+    gemini_api_key: str = ""
 
     log_level: str = "INFO"
     max_file_size_mb: int = 500
@@ -23,7 +26,7 @@ class Settings(BaseSettings):
 
     @property
     def ai_enabled(self) -> bool:
-        return bool(self.ai_api_key)
+        return any([self.anthropic_api_key, self.openai_api_key, self.gemini_api_key])
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
