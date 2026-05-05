@@ -8,8 +8,11 @@ class Settings(BaseSettings):
 
     sample_rate: int = 16000
 
-    # Chaves de IA — o FallbackClient tenta na ordem: Anthropic → OpenAI → Gemini
+    local_ai_model: str = "" 
+
+    # Chaves de IA — o FallbackClient tenta na ordem: Anthropic → Groq → OpenAI → Gemini
     anthropic_api_key: str = ""
+    groq_api_key: str = ""
     openai_api_key: str = ""
     gemini_api_key: str = ""
 
@@ -26,7 +29,7 @@ class Settings(BaseSettings):
 
     @property
     def ai_enabled(self) -> bool:
-        return any([self.anthropic_api_key, self.openai_api_key, self.gemini_api_key])
+        return any([self.anthropic_api_key, self.groq_api_key, self.openai_api_key, self.gemini_api_key])
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
