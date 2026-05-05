@@ -1,8 +1,11 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from config.logging_setup import setup_logging
+from services.ai_services import AIService
 from services.pipeline_service import PipelineService
+from services.report_service import ReportService
 
 setup_logging()
 
@@ -16,11 +19,22 @@ app.add_middleware(
 )
 
 _pipeline = PipelineService()
+_ai_service = AIService()
+_report_service = ReportService()
+
+
+class TextReportRequest(BaseModel):
+    text: str
+    relator: str
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "model_ready": _pipeline._transcription.is_ready()}
+    return {
+        "status": "ok",
+        "model_ready": _pipeline._transcription.is_ready(),
+        "ai_available": _ai_service.is_available(),
+    }
 
 
 @app.post("/process-audio")
@@ -30,7 +44,6 @@ async def process_audio(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Arquivo de áudio vazio.")
 
     suffix = f".{file.filename.rsplit('.', 1)[-1]}" if file.filename else ".wav"
-
     transcript = _pipeline.run_from_bytes(audio_bytes, suffix=suffix)
 
     return {
@@ -42,6 +55,19 @@ async def process_audio(file: UploadFile = File(...)):
             for s in transcript.segments
         ],
     }
+
+
+@app.post("/structure-report")
+async def structure_report(body: TextReportRequest):
+    if not _ai_service.is_available():
+        raise HTTPException(status_code=503, detail="Nenhuma chave de IA configurada no .env.")
+
+    try:
+        report = _ai_service.structure_report(body.text, body.relator)
+        path =  _report_service.save(report)
+        return {**report.to_dict(), "file": str(path)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro no servidor: {e}")
 
 
 if __name__ == "__main__":
