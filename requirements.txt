@@ -1,7 +1,7 @@
 anthropic>=0.49.0
 openai>=1.0.0
-# google-generativeai: incompatível com protobuf>=6 (exigido pelo Streamlit)
-# Para usar Gemini, instale em ambiente separado sem Streamlit
+# google-genai: substituto oficial do google-generativeai, compatível com protobuf>=6
+google-genai>=1.0.0
 altair==6.0.0
 annotated-doc==0.0.4
 annotated-types==0.7.0
