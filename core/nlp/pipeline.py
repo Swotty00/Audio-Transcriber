@@ -4,6 +4,7 @@ from dataclasses import replace
 from core.nlp.utils import (
     capitalize_sentences,
     clean_text,
+    correct_it_terms,
     ensure_ending_punctuation,
     merge_short_segments,
 )
@@ -35,6 +36,7 @@ class NLPPipeline:
         segments = []
         for seg in merged:
             text = clean_text(seg["text"])
+            text = correct_it_terms(text)
             text = capitalize_sentences(text)
             text = ensure_ending_punctuation(text)
             segments.append(
