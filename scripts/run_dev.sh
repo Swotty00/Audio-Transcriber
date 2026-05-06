@@ -101,16 +101,30 @@ mkdir -p "$ROOT/data"
 export PYTHONPATH="$ROOT"
 
 # ---------------------------------------------------------------------------
-# 8. Sobe o servidor FastAPI com uvicorn
+# 8. Sobe o servidor FastAPI em background
 # ---------------------------------------------------------------------------
-info "Iniciando Audio Transcriber em http://${APP_HOST:-localhost}:${APP_PORT:-8000} ..."
-echo ""
+info "Iniciando backend em http://${APP_HOST:-localhost}:${APP_PORT:-8000} ..."
 
-exec uvicorn app.main:app \
+uvicorn app.main:app \
     --host "${APP_HOST:-localhost}" \
     --port "${APP_PORT:-8000}" \
     --reload \
     --reload-dir "$ROOT/app" \
     --reload-dir "$ROOT/core" \
     --reload-dir "$ROOT/services" \
-    --reload-dir "$ROOT/config"
+    --reload-dir "$ROOT/config" &
+
+UVICORN_PID=$!
+
+# ---------------------------------------------------------------------------
+# 9. Sobe o Streamlit em foreground
+# ---------------------------------------------------------------------------
+info "Iniciando frontend em http://${STREAMLIT_HOST:-localhost}:${STREAMLIT_PORT:-8501} ..."
+echo ""
+
+trap "kill $UVICORN_PID 2>/dev/null" EXIT
+
+exec streamlit run app/streamlit_app.py \
+    --server.port="${STREAMLIT_PORT:-8501}" \
+    --server.address="${STREAMLIT_HOST:-localhost}" \
+    --server.fileWatcherType=poll
