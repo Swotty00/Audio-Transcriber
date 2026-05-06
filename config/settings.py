@@ -8,7 +8,11 @@ class Settings(BaseSettings):
 
     sample_rate: int = 16000
 
-    local_ai_model: str = "" 
+    whisper_model: str = "medium"
+    whisper_device: str = "cpu"
+    whisper_language: str = "pt"
+
+    local_ai_model: str = ""
 
     # Chaves de IA — o FallbackClient tenta na ordem: Anthropic → Groq → OpenAI → Gemini
     anthropic_api_key: str = ""
