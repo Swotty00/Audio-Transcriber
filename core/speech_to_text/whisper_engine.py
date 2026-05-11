@@ -19,7 +19,6 @@ class WhisperEngine(SpeechToTextEngine):
 
     def is_ready(self) -> bool:
         try:
-            import faster_whisper  # noqa: F401
             return True
         except ImportError:
             return False

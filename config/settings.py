@@ -1,3 +1,4 @@
+import os
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 
@@ -8,9 +9,10 @@ class Settings(BaseSettings):
 
     sample_rate: int = 16000
 
-    whisper_model: str = "medium"
+    whisper_model: str = os.path.expanduser("models/whisper/faster-whisper-medium")
     whisper_device: str = "cpu"
     whisper_language: str = "pt"
+    hf_token: str = ""
 
     local_ai_model: str = ""
 
