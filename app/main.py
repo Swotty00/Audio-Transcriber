@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -44,7 +45,7 @@ async def process_audio(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Arquivo de áudio vazio.")
 
     suffix = f".{file.filename.rsplit('.', 1)[-1]}" if file.filename else ".wav"
-    transcript = _pipeline.run_from_bytes(audio_bytes, suffix=suffix)
+    transcript = await asyncio.to_thread(_pipeline.run_from_bytes, audio_bytes, suffix=suffix)
 
     return {
         "filename": file.filename,
@@ -63,8 +64,8 @@ async def structure_report(body: TextReportRequest):
         raise HTTPException(status_code=503, detail="Nenhuma chave de IA configurada no .env.")
 
     try:
-        report = _ai_service.structure_report(body.text, body.relator)
-        path =  _report_service.save(report)
+        report = await _ai_service.structure_report_async(body.text, body.relator)  # ← direto, sem to_thread
+        path = await asyncio.to_thread(_report_service.save, report)
         return {**report.to_dict(), "file": str(path)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro no servidor: {e}")
