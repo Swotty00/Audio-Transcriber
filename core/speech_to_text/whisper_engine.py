@@ -28,12 +28,13 @@ class WhisperEngine(SpeechToTextEngine):
             from faster_whisper import WhisperModel
             logger.info(
                 "Carregando Whisper (%s) em %s ...",
-                settings.whisper_model,
+                settings.whisper_model_size,
                 settings.whisper_device,
             )
             self._model = WhisperModel(
-                settings.whisper_model,
+                settings.whisper_model_size,
                 device=settings.whisper_device,
+                download_root=settings.whisper_model_dir,
                 compute_type="int8",
             )
             logger.info("Whisper carregado.")

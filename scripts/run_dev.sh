@@ -69,9 +69,33 @@ if [ ! -f "$ROOT/.env" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 5. Verifica modelo Vosk
+# 5. Verifica/baixa modelo de transcrição
+#
+# O engine principal é o Whisper (faster-whisper); o Vosk só é usado como
+# fallback se o faster-whisper não estiver instalado. Então aqui a gente
+# tenta garantir o Whisper primeiro, e só cai pro Vosk se o Whisper de fato
+# não puder ser usado.
 # ---------------------------------------------------------------------------
-VOSK_MODEL_PATH=$(python3 -c "
+export PYTHONPATH="$ROOT"
+
+info "Verificando modelo Whisper ..."
+WHISPER_READY=$(python3 -c "
+try:
+    from faster_whisper.utils import download_model
+    from config.settings import settings
+    download_model(settings.whisper_model_size, cache_dir=settings.whisper_model_dir)
+    print('ok')
+xcept Exception as e:
+    print('fail:' + str(e))
+")
+
+if [[ "$WHISPER_READY" == ok* ]]; then
+    info "Modelo Whisper pronto."
+else
+    warn "Whisper indisponível (faster-whisper não instalado ou falha no download)."
+    warn "Caindo para Vosk como fallback ..."
+
+    VOSK_MODEL_PATH=$(python3 -c "
 import sys
 sys.path.insert(0, '.')
 try:
@@ -81,13 +105,19 @@ except Exception:
     print('models/vosk')
 " 2>/dev/null) || VOSK_MODEL_PATH="models/vosk"
 
-MODEL_FILES=$(find "$ROOT/$VOSK_MODEL_PATH" -not -name ".gitkeep" -not -type d 2>/dev/null | wc -l || echo 0)
-if [ "$MODEL_FILES" -eq 0 ]; then
-    warn "Modelo Vosk não encontrado em '$VOSK_MODEL_PATH'."
-    warn "Baixando modelo padrão (small-pt) ..."
-    python3 scripts/download_models.py --model small-pt
-else
-    info "Modelo Vosk encontrado em '$VOSK_MODEL_PATH'."
+    # Garante que a pasta exista ANTES do find, senão o 'find' falha
+    # (exit != 0), o 'pipefail' propaga isso pro pipeline e o script
+    # morre aqui por causa do 'set -e' — antes de tentar baixar o modelo.
+    mkdir -p "$ROOT/$VOSK_MODEL_PATH"
+    MODEL_FILES=$(find "$ROOT/$VOSK_MODEL_PATH" -not -name ".gitkeep" -not -type d 2>/dev/null | wc -l)
+
+    if [ "$MODEL_FILES" -eq 0 ]; then
+        warn "Modelo Vosk não encontrado em '$VOSK_MODEL_PATH'."
+        warn "Baixando modelo padrão (small-pt) ..."
+        python3 scripts/download_models.py --model small-pt
+    else
+        info "Modelo Vosk encontrado em '$VOSK_MODEL_PATH'."
+    fi
 fi
 
 # ---------------------------------------------------------------------------

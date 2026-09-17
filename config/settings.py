@@ -9,7 +9,8 @@ class Settings(BaseSettings):
 
     sample_rate: int = 16000
 
-    whisper_model: str = os.path.expanduser("models/whisper/faster-whisper-medium")
+    whisper_model_size: str = "medium"
+    whisper_model_dir: str = "models/whisper"
     whisper_device: str = "cpu"
     whisper_language: str = "pt"
     hf_token: str = ""
