@@ -85,7 +85,7 @@ try:
     from config.settings import settings
     download_model(settings.whisper_model_size, cache_dir=settings.whisper_model_dir)
     print('ok')
-xcept Exception as e:
+except Exception as e:
     print('fail:' + str(e))
 ")
 
