@@ -61,7 +61,7 @@ async def process_audio(file: UploadFile = File(...)):
 @app.post("/structure-report")
 async def structure_report(body: TextReportRequest):
     if not _ai_service.is_available():
-        raise HTTPException(status_code=503, detail="Nenhuma chave de IA configurada no .env.")
+        raise HTTPException(status_code=503, detail="Verifique se o ollama está funcionando e que há um modelo LLM disponível. Talvez seja problema de bloqueio de rede.")
 
     try:
         report = await _ai_service.structure_report_async(body.text, body.relator)  # ← direto, sem to_thread
